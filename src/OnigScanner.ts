@@ -21,14 +21,14 @@ interface NativeOnigHInfo {
     regexTPtrs: Uint8Array | null
 }
 
-interface OnigCaptureIndex {
+export interface OnigCaptureIndex {
     index: number
     start: number
     end: number
     length: number
 }
 
-interface OnigMatch {
+export interface OnigMatch {
     index: number
     captureIndices: OnigCaptureIndex[]
     scanner: OnigScanner

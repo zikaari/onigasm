@@ -29,7 +29,7 @@ then
     mkdir lib
 fi
 
-emcc -O3 \
+emcc -O2 \
     oniguruma/src/.libs/libonig.so \
     src/onigasm.cc src/onigstring.cc\
     -Isrc -Ioniguruma/src \

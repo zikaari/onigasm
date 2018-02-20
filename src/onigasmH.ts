@@ -6,7 +6,7 @@ const OnigasmModuleFactory = require('./onigasm' /** when TS is compiled to JS, 
 
 /**
  * Handle to onigasm module (the JS glue code emitted by emscripten, that provides access to C/C++ runtime)
- * 
+ *
  * Single handle shared among modules that decorate the C runtime to deliver `atom/node-oniguruma` API
  */
 export let onigasmH;
@@ -33,6 +33,11 @@ async function initModule(bytes: ArrayBuffer) {
 }
 
 let isInitialized = false
+
+/**
+ * Mount the .wasm file that will act as library's "backend"
+ * @param data Path to .wasm file or it's ArrayBuffer
+ */
 export async function loadWASM(data: string | ArrayBuffer) {
     if (isInitialized) {
         throw new Error(`Onigasm#init has been called and was succesful, subsequent calls are not allowed once initialized`)
