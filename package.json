@@ -1,0 +1,45 @@
+{
+  "name": "onigasm",
+  "version": "0.0.0",
+  "description": "WebAssembly port of Oniguruma regex library",
+  "main": "lib/index.js",
+  "typings": "lib/typings/index.d.ts",
+  "scripts": {
+    "build::onig": "./scripts/build.sh",
+    "watch::onig": "onchange 'src/**/*.cc' -w -p 1000 -- npm run build::onig",
+    "build::tsc": "tsc",
+    "watch::tsc": "tsc -w",
+    "build": "concurrently \"npm run build::tsc\" \"npm run build::onig\"",
+    "watch": "concurrently \"npm run watch::tsc\" \"npm run watch::onig\"",
+    "test": "node test/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NeekSandhu/onigasm.git"
+  },
+  "keywords": [
+    "oniguruma",
+    "onig",
+    "regex",
+    "wasm",
+    "asm",
+    "web",
+    "assembly"
+  ],
+  "author": "Neek Sandhu <neek.sandhu@outlook.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/NeekSandhu/onigasm/issues"
+  },
+  "homepage": "https://github.com/NeekSandhu/onigasm#readme",
+  "devDependencies": {
+    "@types/lru-cache": "^4.1.0",
+    "concurrently": "^3.5.1",
+    "jasmine-focused": "^1.0.7",
+    "onchange": "^3.3.0",
+    "typescript": "^2.7.1"
+  },
+  "dependencies": {
+    "lru-cache": "^4.1.1"
+  }
+}

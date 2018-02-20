@@ -1,0 +1,1 @@
+Files in `/spec` should be in sync with `atom/node-oniguruma` to ensure 100% API/usage/behaviour compliance
