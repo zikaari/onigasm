@@ -31,6 +31,8 @@ import App from './App'
     await loadWASM('path/to/onigasm.wasm') // You can also pass ArrayBuffer of onigasm.wasm file
     App.start()
 })()
+
+// `onigasm.wasm` file will be available at `onigasm/lib/onigasm.wasm` in `node_modules` of your project directory
 ```
 
 > Once loaded `onigasm` is a drop-in replacement for `oniguruma`
