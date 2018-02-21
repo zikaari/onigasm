@@ -1,4 +1,5 @@
 import OnigScanner, { IOnigCaptureIndex } from './OnigScanner'
+import OnigString from './OnigString';
 
 export interface IOnigSearchResult extends IOnigCaptureIndex {
     match: string
@@ -26,7 +27,7 @@ class OnigRegExp {
      * @param string The string to search
      * @param startPosition The optional position to start the search at, defaults to `0`
      */
-    public searchSync(string: string, startPosition?: number): IOnigSearchResult[] {
+    public searchSync(string: string | OnigString, startPosition?: number): IOnigSearchResult[] {
         var match
         if (startPosition == null) {
             startPosition = 0
@@ -41,7 +42,7 @@ class OnigRegExp {
      * @param startPosition The optional position to start the search at, defaults to `0`
      * @param callback The `(error, match)` function to call when done, match will be null if no matches were found. match will be an array of objects for each matched group on a successful search
      */
-    public search(string: string, startPosition?: number, callback?: (error: any, match?: IOnigSearchResult[]) => void) {
+    public search(string: string | OnigString, startPosition?: number, callback?: (error: any, match?: IOnigSearchResult[]) => void) {
         if (startPosition == null) {
             startPosition = 0
         }
@@ -61,7 +62,7 @@ class OnigRegExp {
      * Synchronously test if this regular expression matches the given string
      * @param string The string to test against
      */
-    public testSync(string: string): boolean {
+    public testSync(string: string | OnigString): boolean {
         if ((typeof this.source === 'boolean' || typeof string === 'boolean')) {
             return this.source === string
         }
@@ -73,7 +74,7 @@ class OnigRegExp {
      * @param string The string to test against
      * @param callback The (error, matches) function to call when done, matches will be true if at least one match is found, false otherwise
      */
-    public test(string: string, callback?: (error: any, matches?: boolean) => void) {
+    public test(string: string | OnigString, callback?: (error: any, matches?: boolean) => void) {
         if (typeof callback !== 'function') {
             callback = () => { }
         }
@@ -84,14 +85,14 @@ class OnigRegExp {
         }
     }
 
-    private captureIndicesForMatch(string: string, match) {
+    private captureIndicesForMatch(string: string | OnigString, match) {
         if (match != null) {
             const { captureIndices } = match
             let capture
             string = this.scanner.convertToString(string)
             for (let i = 0; i < captureIndices.length; i++) {
                 capture = captureIndices[i]
-                capture.match = string.slice(capture.start, capture.end)
+                capture.match = (string as string).slice(capture.start, capture.end)
             }
             return captureIndices
         } else {

@@ -79,7 +79,7 @@ class OnigScanner {
      * @param startPosition The optional position to start at, defaults to 0
      * @param callback The (error, match) function to call when done, match will null when there is no match
      */
-    public findNextMatch(string: string, startPosition: number, callback: (err, match?: IOnigMatch) => void) {
+    public findNextMatch(string: string | OnigString, startPosition: number, callback: (err, match?: IOnigMatch) => void) {
         if (startPosition == null) startPosition = 0
         if (typeof startPosition === 'function') {
             callback = startPosition
@@ -99,7 +99,7 @@ class OnigScanner {
      * @param string The string to search
      * @param startPosition The optional position to start at, defaults to 0
      */
-    public findNextMatchSync(string: string, startPosition: number): IOnigMatch {
+    public findNextMatchSync(string: string | OnigString, startPosition: number): IOnigMatch {
         if (startPosition == null) { startPosition = 0 }
         string = this.convertToString(string)
         startPosition = this.convertToNumber(startPosition)
@@ -126,7 +126,7 @@ class OnigScanner {
         }
 
         const resultInfoReceiverPtr = onigasmH._malloc(8)
-        const u8Encoded = encode(string)
+        const u8Encoded = encode(string as string)
         const strPtr = onigasmH._malloc(u8Encoded.length)
         onigasmH.HEAPU8.set(u8Encoded, strPtr)
         // const strSize = onigasmH.lengthBytesUTF8(string) + 1
@@ -188,7 +188,7 @@ class OnigScanner {
     public convertToString(value) {
         if (value === undefined) return 'undefined'
         if (value === null) return 'null'
-        if (value.constructor == OnigString) return value
+        if (value instanceof OnigString) return value.content
         return value.toString()
     }
 
