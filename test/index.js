@@ -11,4 +11,4 @@ loadWASM(wasmBin).then(() => {
     jasmine.executeSpecsInFolder({
         specFolders: [path.join(__dirname, '../spec')]
     })
-}).catch(console.log)
+})
