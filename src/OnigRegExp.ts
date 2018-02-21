@@ -1,6 +1,6 @@
-import OnigScanner, { OnigCaptureIndex } from './OnigScanner'
+import OnigScanner, { IOnigCaptureIndex } from './OnigScanner'
 
-export interface OnigSearchResult extends OnigCaptureIndex {
+export interface IOnigSearchResult extends IOnigCaptureIndex {
     match: string
 }
 
@@ -26,7 +26,7 @@ class OnigRegExp {
      * @param string The string to search
      * @param startPosition The optional position to start the search at, defaults to `0`
      */
-    public searchSync(string: string, startPosition?: number): OnigSearchResult[] {
+    public searchSync(string: string, startPosition?: number): IOnigSearchResult[] {
         var match
         if (startPosition == null) {
             startPosition = 0
@@ -41,7 +41,7 @@ class OnigRegExp {
      * @param startPosition The optional position to start the search at, defaults to `0`
      * @param callback The `(error, match)` function to call when done, match will be null if no matches were found. match will be an array of objects for each matched group on a successful search
      */
-    public search(string: string, startPosition?: number, callback?: (error: any, match?: OnigSearchResult[]) => void) {
+    public search(string: string, startPosition?: number, callback?: (error: any, match?: IOnigSearchResult[]) => void) {
         if (startPosition == null) {
             startPosition = 0
         }

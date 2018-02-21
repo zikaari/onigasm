@@ -1,6 +1,6 @@
 import { loadWASM } from './onigasmH'
-import OnigScanner from './OnigScanner'
-import OnigRegExp from './OnigRegExp'
+import OnigScanner, { IOnigCaptureIndex } from './OnigScanner'
+import OnigRegExp, { IOnigSearchResult } from './OnigRegExp'
 import OnigString from './OnigString'
 
-export { loadWASM, OnigScanner, OnigRegExp, OnigString }
+export { loadWASM, OnigScanner, OnigRegExp, OnigString, IOnigCaptureIndex, IOnigSearchResult }

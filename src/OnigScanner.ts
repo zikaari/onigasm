@@ -21,16 +21,16 @@ interface NativeOnigHInfo {
     regexTPtrs: Uint8Array | null
 }
 
-export interface OnigCaptureIndex {
+export interface IOnigCaptureIndex {
     index: number
     start: number
     end: number
     length: number
 }
 
-export interface OnigMatch {
+export interface IOnigMatch {
     index: number
-    captureIndices: OnigCaptureIndex[]
+    captureIndices: IOnigCaptureIndex[]
     scanner: OnigScanner
 }
 
@@ -79,7 +79,7 @@ class OnigScanner {
      * @param startPosition The optional position to start at, defaults to 0
      * @param callback The (error, match) function to call when done, match will null when there is no match
      */
-    public findNextMatch(string: string, startPosition: number, callback: (err, match?: OnigMatch) => void) {
+    public findNextMatch(string: string, startPosition: number, callback: (err, match?: IOnigMatch) => void) {
         if (startPosition == null) startPosition = 0
         if (typeof startPosition === 'function') {
             callback = startPosition
@@ -99,7 +99,7 @@ class OnigScanner {
      * @param string The string to search
      * @param startPosition The optional position to start at, defaults to 0
      */
-    public findNextMatchSync(string: string, startPosition: number): OnigMatch {
+    public findNextMatchSync(string: string, startPosition: number): IOnigMatch {
         if (startPosition == null) { startPosition = 0 }
         string = this.convertToString(string)
         startPosition = this.convertToNumber(startPosition)
