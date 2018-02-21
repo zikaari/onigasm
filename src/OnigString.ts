@@ -1,23 +1,27 @@
 class OnigString {
-    private content: string
+    private source: string
 
     constructor(content: string) {
-        if(typeof content !== 'string') {
+        if (typeof content !== 'string') {
             throw new TypeError('Argument must be a string')
         }
-        this.content = content
+        this.source = content
     }
-    
-    public get length() {
-        return this.content.length
+
+    public get content(): string {
+        return this.source
+    }
+
+    public get length(): number {
+        return this.source.length
     }
 
     public substring = (start, end) => {
-        return this.content.substring(start, end)
+        return this.source.substring(start, end)
     }
 
     public toString = (start, end) => {
-        return this.content
+        return this.source
     }
 
 }
