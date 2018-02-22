@@ -43,3 +43,6 @@ emcc -O2 \
     -s MODULARIZE=1 \
     -s EXPORT_NAME="'Onigasm'" \
     -o lib/onigasm.js
+
+# 'require("fs")' in onigasm.js makes webpack go haywire, so remove it. It's OK as we don't need it anyway
+sed -i -r 's/require\("\w+"\)/{}/g' lib/onigasm.js
