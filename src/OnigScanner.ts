@@ -50,7 +50,7 @@ const cache: Cache<OnigScanner, NativeOnigHInfo> = new LRUCache({
     }
 })
 
-class OnigScanner {
+export class OnigScanner {
     private sources: string[]
     /**
      * Create a new scanner with the given patterns
