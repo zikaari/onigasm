@@ -2,7 +2,7 @@
 declare const require
 declare const WebAssembly
 
-const OnigasmModuleFactory = require('./onigasm' /** when TS is compiled to JS, this will mean `lib/onigasm.js` (emitted by `emcc`) */)
+const OnigasmModuleFactory = require('./onigasm.js' /** when TS is compiled to JS, this will mean `lib/onigasm.js` (emitted by `emcc`) */)
 
 /**
  * Handle to onigasm module (the JS glue code emitted by emscripten, that provides access to C/C++ runtime)
