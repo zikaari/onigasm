@@ -37,6 +37,11 @@ class OnigString {
         return this.ptr;
     }
 
+    /** For testing purposes */
+    public hasPtr() {
+        return !!this.ptr;
+    }
+
     public dispose(): void {
         if (this.ptr) {
             onigasmH._free(this.ptr);

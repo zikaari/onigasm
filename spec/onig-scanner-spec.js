@@ -1,6 +1,7 @@
 'use strict'
 
 const OnigScanner = require('..').OnigScanner
+const OnigString = require('..').OnigString
 
 describe('OnigScanner', () => {
   describe('::findNextMatchSync', () => {
@@ -12,6 +13,20 @@ describe('OnigScanner', () => {
       expect(scanner.findNextMatchSync('xxaxxbxxc', 7).index).toBe(2)
       expect(scanner.findNextMatchSync('xxaxxbxxc', 9)).toBe(null)
     })
+    
+    it('works with onig string', () => {
+      let scanner = new OnigScanner(['Wh', 'e'])
+      let onigString = new OnigString('WhereWhileWhen');
+      try {
+        expect(scanner.findNextMatchSync(onigString, 0).captureIndices).toEqual([{index: 0, start: 0, end: 2, length: 2}])
+        expect(scanner.findNextMatchSync(onigString, 2).captureIndices).toEqual([{index: 0, start: 2, end: 3, length: 1}])
+        expect(scanner.findNextMatchSync(onigString, 3).captureIndices).toEqual([{index: 0, start: 4, end: 5, length: 1}])
+        expect(scanner.findNextMatchSync(onigString, 5).captureIndices).toEqual([{index: 0, start: 5, end: 7, length: 2}])
+        expect(scanner.findNextMatchSync(onigString, 7).captureIndices).toEqual([{index: 0, start: 9, end: 10, length: 1}])
+      } finally {
+        onigString.dispose();
+      }
+    })    
 
     it('includes the scanner with the results', () => {
       let scanner = new OnigScanner(['a'])

@@ -102,6 +102,7 @@ export class OnigScanner {
     public findNextMatchSync(string: string | OnigString, startPosition: number): IOnigMatch {
         if (startPosition == null) { startPosition = 0 }
         let onigStr = this.convertToOnigString(string)
+        if (!onigStr) return null;
         startPosition = this.convertToNumber(startPosition)
 
         let onigNativeInfo = cache.get(this)
@@ -186,10 +187,9 @@ export class OnigScanner {
     }
 
     public convertToOnigString(value: string | OnigString) : OnigString {
-        if (typeof value === 'string') {
-            return new OnigString(value)
-        }
-        return value
+        if (value instanceof OnigString) return value
+        if (typeof value === 'string') { return new OnigString(value) }
+        return null;
     }
 
     public convertToString(value) {
