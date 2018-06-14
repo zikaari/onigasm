@@ -1,5 +1,9 @@
+import { onigasmH } from "./onigasmH";
+import { encode } from "./UTF8Encoder";
+
 class OnigString {
-    private source: string
+    private source: string;
+    private ptr: number;
 
     constructor(content: string) {
         if (typeof content !== 'string') {
@@ -22,6 +26,22 @@ class OnigString {
 
     public toString = (start, end) => {
         return this.source
+    }
+
+    public toAsmString(): number {
+        if (!this.ptr) {
+            const u8Encoded = encode(this.source);
+            this.ptr = onigasmH._malloc(u8Encoded.length);
+            onigasmH.HEAPU8.set(u8Encoded, this.ptr);
+        }
+        return this.ptr;
+    }
+
+    public dispose(): void {
+        if (this.ptr) {
+            onigasmH._free(this.ptr);
+            this.ptr = null;
+        }
     }
 
 }
