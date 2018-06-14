@@ -76,7 +76,7 @@ int findBestMatch(regex_t **patterns, int patternCount, UChar *utf8String, int s
     }
     end = utf8String + strLen;
 
-    start = utf8String + (unsigned char)(hasMultibyteCharacters ? oStr->ConvertUtf16OffsetToUtf8(startOffset) : startOffset);
+    start = utf8String + (hasMultibyteCharacters ? oStr->ConvertUtf16OffsetToUtf8(startOffset) : startOffset);
     range = end;
     r = onig_search(patterns[i], utf8String, end, start, range, region, ONIG_OPTION_NONE);
     if (r >= 0)
