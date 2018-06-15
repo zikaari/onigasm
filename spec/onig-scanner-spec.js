@@ -187,5 +187,28 @@ describe('OnigScanner', () => {
         })
       })
     )
+
+    describe('when searching with start index', () =>
+      it('returns correct results for indexes > 255', () => {
+        let scanner = new OnigScanner(['88'])
+        let content = Array(300).join().split(',').map((v, i) => String(i)).join(' ') // '0 1 2 3 4 ...298 299'
+       
+        let match = scanner.findNextMatchSync(content, 0)
+        expect(!!match).toBe(true)
+        expect(match.captureIndices[0].start).toBe(254)
+
+        match = scanner.findNextMatchSync(content, 260)
+        expect(!!match).toBe(true)
+        expect(match.captureIndices[0].start).toBe(643)
+
+        match = scanner.findNextMatchSync(content, 650)
+        expect(!!match).toBe(true)
+        expect(match.captureIndices[0].start).toBe(1043)
+
+        match = scanner.findNextMatchSync(content, 1050)
+        expect(!!match).toBe(false)        
+      
+      })
+    )    
   })
 })
