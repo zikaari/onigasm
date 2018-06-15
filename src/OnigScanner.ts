@@ -101,7 +101,8 @@ export class OnigScanner {
      */
     public findNextMatchSync(string: string | OnigString, startPosition: number): IOnigMatch {
         if (startPosition == null) { startPosition = 0 }
-        string = this.convertToString(string)
+        let onigStr = this.convertToOnigString(string)
+        if (!onigStr) return null;
         startPosition = this.convertToNumber(startPosition)
 
         let onigNativeInfo = cache.get(this)
@@ -126,9 +127,7 @@ export class OnigScanner {
         }
 
         const resultInfoReceiverPtr = onigasmH._malloc(8)
-        const u8Encoded = encode(string as string)
-        const strPtr = onigasmH._malloc(u8Encoded.length)
-        onigasmH.HEAPU8.set(u8Encoded, strPtr)
+        const strPtr = onigStr.toAsmString()
         // const strSize = onigasmH.lengthBytesUTF8(string) + 1
         // const strPtr = onigasmH._malloc(strSize)
         // const bytesWritten = onigasmH.stringToUTF8(string, strPtr, strSize)
@@ -156,7 +155,9 @@ export class OnigScanner {
             encodedResultLength,
         ] = new Uint32Array(onigasmH.buffer, resultInfoReceiverPtr, 3)
 
-        onigasmH._free(strPtr)
+        if (onigStr !== string) {
+            onigStr.dispose()
+        }
         onigasmH._free(resultInfoReceiverPtr)
         if (encodedResultLength > 0) {
             const encodedResult = new Uint32Array(onigasmH.buffer, encodedResultBeginAddress, encodedResultLength)
@@ -185,12 +186,18 @@ export class OnigScanner {
         return null
     }
 
+    public convertToOnigString(value: string | OnigString) : OnigString {
+        if (value instanceof OnigString) return value
+        if (typeof value === 'string') { return new OnigString(value) }
+        return null;
+    }
+
     public convertToString(value) {
         if (value === undefined) return 'undefined'
         if (value === null) return 'null'
         if (value instanceof OnigString) return value.content
         return value.toString()
-    }
+    } 
 
     public convertToNumber(value) {
         value = parseInt(value)
