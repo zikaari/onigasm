@@ -101,7 +101,6 @@ export class OnigScanner {
      */
     public findNextMatchSync(string: string | OnigString, startPosition: number): IOnigMatch {
         if (startPosition == null) { startPosition = 0 }
-        string = this.convertToString(string)
         startPosition = this.convertToNumber(startPosition)
 
         let onigNativeInfo = cache.get(this)
@@ -126,9 +125,9 @@ export class OnigScanner {
         }
 
         const resultInfoReceiverPtr = onigasmH._malloc(8)
-        const u8Encoded = encode(string as string)
-        const strPtr = onigasmH._malloc(u8Encoded.length)
-        onigasmH.HEAPU8.set(u8Encoded, strPtr)
+        const onigString = string instanceof OnigString ? string : new OnigString(this.convertToString(string))
+        const strPtr = onigasmH._malloc(onigString.utf8Bytes.length)
+        onigasmH.HEAPU8.set(onigString.utf8Bytes, strPtr)
         // const strSize = onigasmH.lengthBytesUTF8(string) + 1
         // const strPtr = onigasmH._malloc(strSize)
         // const bytesWritten = onigasmH.stringToUTF8(string, strPtr, strSize)
@@ -136,7 +135,7 @@ export class OnigScanner {
             'findBestMatch',
             'number',
             ['array', 'number', 'number', 'number', 'number', 'number'],
-            [onigNativeInfo.regexTPtrs, this.sources.length, strPtr, string.length, startPosition, resultInfoReceiverPtr]
+            [onigNativeInfo.regexTPtrs, this.sources.length, strPtr, onigString.length, startPosition, resultInfoReceiverPtr]
         )
         if (status !== 0) {
             const errString = onigasmH.ccall('getLastError', 'string')
