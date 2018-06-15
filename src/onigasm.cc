@@ -63,26 +63,29 @@ int findBestMatch(regex_t **patterns, int patternCount, UChar *utf8String, int s
   OnigRegion *bestRegion = NULL;
   OnigString *oStr = NULL;
   int bestRegionIdx = 0;
-  bool hasMultibyteCharacters = false;
-   for (int i = 0; i < patternCount; i++)
+  int strLen = strlen((char *)utf8String);
+  bool hasMultibyteCharacters = strLen > strLenAsUtf16;
+  if (hasMultibyteCharacters)
+  {
+    oStr = new OnigString((char *)utf8String, strLenAsUtf16);
+  }
+  end = utf8String + strLen;
+
+  start = utf8String + (hasMultibyteCharacters ? oStr->ConvertUtf16OffsetToUtf8(startOffset) : startOffset);
+  for (int i = 0; i < patternCount; i++)
   {
     OnigRegion *region;
     region = onig_region_new();
-    int strLen = strlen((char *)utf8String);
-    hasMultibyteCharacters = strLen > strLenAsUtf16;
-    if (hasMultibyteCharacters)
-    {
-      oStr = new OnigString((char *)utf8String, strLenAsUtf16);
-    }
-    end = utf8String + strLen;
 
-    start = utf8String + (hasMultibyteCharacters ? oStr->ConvertUtf16OffsetToUtf8(startOffset) : startOffset);
     range = end;
     r = onig_search(patterns[i], utf8String, end, start, range, region, ONIG_OPTION_NONE);
     if (r >= 0)
     {
       if (region->num_regs > 0 && (bestRegion == NULL || region->beg[0] < bestRegion->beg[0]))
       {
+        if (bestRegion != NULL) {
+          onig_region_free(bestRegion, 1);
+        }
         bestRegion = region;
         bestRegionIdx = i;
         continue;
@@ -95,10 +98,12 @@ int findBestMatch(regex_t **patterns, int patternCount, UChar *utf8String, int s
     else
     { /* error */
       onig_region_free(region, 1);
+      if (bestRegion != NULL) {
+        onig_region_free(bestRegion, 1);
+      }
       lastErrCode = r;
       return -1;
     }
-    onig_region_free(region, 1);
   }
 
   if (bestRegion != NULL)
