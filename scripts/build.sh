@@ -31,7 +31,7 @@ fi
 
 emcc -O2 \
     oniguruma/src/.libs/libonig.so \
-    src/onigasm.cc src/onigstring.cc\
+    src/onigasm.cc\
     -Isrc -Ioniguruma/src \
     -s WASM=1 \
     -s NO_EXIT_RUNTIME=1 \
