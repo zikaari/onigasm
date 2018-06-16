@@ -6,7 +6,6 @@ const LRUCache = require('lru-cache')
 
 import OnigString from './OnigString'
 import { onigasmH } from './onigasmH'
-import { encode } from './UTF8Encoder'
 
 /**
  * Every instance of OnigScanner internally calls native libonig API
@@ -128,14 +127,26 @@ export class OnigScanner {
         const onigString = string instanceof OnigString ? string : new OnigString(this.convertToString(string))
         const strPtr = onigasmH._malloc(onigString.utf8Bytes.length)
         onigasmH.HEAPU8.set(onigString.utf8Bytes, strPtr)
-        // const strSize = onigasmH.lengthBytesUTF8(string) + 1
-        // const strPtr = onigasmH._malloc(strSize)
-        // const bytesWritten = onigasmH.stringToUTF8(string, strPtr, strSize)
         const status = onigasmH.ccall(
             'findBestMatch',
             'number',
             ['array', 'number', 'number', 'number', 'number', 'number'],
-            [onigNativeInfo.regexTPtrs, this.sources.length, strPtr, onigString.length, startPosition, resultInfoReceiverPtr]
+            [
+                // regex_t **patterns
+                onigNativeInfo.regexTPtrs,
+                // int patternCount
+                this.sources.length,
+                // UChar *utf8String
+                strPtr,
+                // int strLen
+                onigString.utf8Bytes.length - 1,
+                // int startOffset
+                onigString.hasMultiByteCharacters
+                    ? onigString.convertUtf16OffsetToUtf8(startPosition)
+                    : startPosition,
+                // int *resultInfo
+                resultInfoReceiverPtr
+            ]
         )
         if (status !== 0) {
             const errString = onigasmH.ccall('getLastError', 'string')
@@ -146,8 +157,8 @@ export class OnigScanner {
             bestPatternIdx,
 
             // Begin address of capture info encoded as pairs
-            // like [start, end, start, end, start, end, ...] 
-            //  - first start-end pair is entire match (index 0 and 1) 
+            // like [start, end, start, end, start, end, ...]
+            //  - first start-end pair is entire match (index 0 and 1)
             //  - subsequent pairs are capture groups (2, 3 = first capture group, 4, 5 = second capture group and so on)
             encodedResultBeginAddress,
 
@@ -163,10 +174,14 @@ export class OnigScanner {
             let i = 0
             let captureIdx = 0
             while (i < encodedResultLength) {
-                const index = captureIdx++
-                const start = encodedResult[i++]
-                const end = encodedResult[i++]
-                const length = end - start
+                var index = captureIdx++
+                var start = encodedResult[i++]
+                var end = encodedResult[i++]
+                if(onigString.hasMultiByteCharacters) {
+                    start = onigString.convertUtf8OffsetToUtf16(start)
+                    end = onigString.convertUtf8OffsetToUtf16(end)
+                }
+                var length = end - start
                 captureIndices.push({
                     index,
                     start,
