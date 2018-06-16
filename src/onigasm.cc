@@ -1,20 +1,10 @@
-/*
- * simple.c
- */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "oniguruma.h"
 #include <emscripten/emscripten.h>
-#include "onigstring.h"
 
 extern "C" {
-// int main()
-// {
-//   OnigEncoding use_endfcs[] df=ddf {ONIG_ENCODING_UTF8};
-//   onig_initializbfe(use_encs,dfd sizeof(useg_encs) / sizeof(use_encs[0]));
-//   return 0;
-// }
 
 int lastErrCode = 0;
 
@@ -55,29 +45,20 @@ int disposeCompiledPatterns(regex_t **patterns, int patternCount)
 }
 
 EMSCRIPTEN_KEEPALIVE
-int findBestMatch(regex_t **patterns, int patternCount, UChar *utf8String, int strLenAsUtf16, int startOffset, int *resultInfo)
+int findBestMatch(regex_t **patterns, int patternCount, UChar *utf8String, int strLen, int startOffset, int *resultInfo)
 {
   int r;
   unsigned char *start, *range, *end;
+  start = utf8String + startOffset;
+  end = utf8String + strLen;
+  range = end;
   OnigErrorInfo einfo;
   OnigRegion *bestRegion = NULL;
-  OnigString *oStr = NULL;
   int bestRegionIdx = 0;
-  bool hasMultibyteCharacters = false;
-   for (int i = 0; i < patternCount; i++)
+  for (int i = 0; i < patternCount; i++)
   {
     OnigRegion *region;
     region = onig_region_new();
-    int strLen = strlen((char *)utf8String);
-    hasMultibyteCharacters = strLen > strLenAsUtf16;
-    if (hasMultibyteCharacters)
-    {
-      oStr = new OnigString((char *)utf8String, strLenAsUtf16);
-    }
-    end = utf8String + strLen;
-
-    start = utf8String + (hasMultibyteCharacters ? oStr->ConvertUtf16OffsetToUtf8(startOffset) : startOffset);
-    range = end;
     r = onig_search(patterns[i], utf8String, end, start, range, region, ONIG_OPTION_NONE);
     if (r >= 0)
     {
@@ -108,24 +89,13 @@ int findBestMatch(regex_t **patterns, int patternCount, UChar *utf8String, int s
     int i = 0;
     int j = 0;
 
-    if (hasMultibyteCharacters)
+    while (i < bestRegion->num_regs)
     {
-      while (i < bestRegion->num_regs)
-      {
-        res[j++] = oStr->ConvertUtf8OffsetToUtf16(bestRegion->beg[i]);
-        res[j++] = oStr->ConvertUtf8OffsetToUtf16(bestRegion->end[i]);
-        i++;
-      }
+      res[j++] = bestRegion->beg[i];
+      res[j++] = bestRegion->end[i];
+      i++;
     }
-    else
-    {
-      while (i < bestRegion->num_regs)
-      {
-        res[j++] = bestRegion->beg[i];
-        res[j++] = bestRegion->end[i];
-        i++;
-      }
-    }
+
     resultInfo[0] = bestRegionIdx;
     resultInfo[1] = (int)res;
     resultInfo[2] = resultLen;
@@ -137,7 +107,6 @@ int findBestMatch(regex_t **patterns, int patternCount, UChar *utf8String, int s
     resultInfo[1] = 0;
     resultInfo[2] = 0;
   }
-  delete oStr;
   return 0;
 }
 }
