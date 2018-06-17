@@ -1,10 +1,12 @@
+import { onigasmH } from "./onigasmH";
+
 class OnigString {
     private source: string
-    private _utf8Bytes: Uint8Array
+    public utf8Bytes: Uint8Array
     private _utf16Bytes: Uint16Array
     private _utf8OffsetToUtf16: Uint32Array
     private _utf16OffsetToUtf8: Uint32Array
-    private _hasMultiByteChars: boolean
+    public hasMultiByteCharacters: boolean
 
     constructor(content: string) {
         if (typeof content !== 'string') {
@@ -12,77 +14,7 @@ class OnigString {
         }
         this.source = content
 
-        const [utf8, utf16] = this.encode(content)
-
-        this._utf8Bytes = utf8
-        this._utf16Bytes = utf16
-
-        this._hasMultiByteChars = (utf16.length < utf8.length);
-
-        if (this._hasMultiByteChars) {
-            var utf16Length = utf16.length - 1
-            var utf8Length = utf8.length - 1
-
-            const _utf16OffsetToUtf8 = new Uint32Array(utf16Length + 1)
-            _utf16OffsetToUtf8[utf16Length] = utf8Length
-            this._utf16OffsetToUtf8 = _utf16OffsetToUtf8
-
-            const _utf8OffsetToUtf16 = new Uint32Array(utf8Length + 1)
-            _utf8OffsetToUtf16[utf8Length] = utf16Length
-            this._utf8OffsetToUtf16 = _utf8OffsetToUtf16
-
-            // http://stackoverflow.com/a/148766
-            var i8 = 0
-            for (var i16 = 0, len = utf16Length; i16 < len; i16++) {
-                var _in = utf16[i16]
-
-                var codepoint = _in
-                var wasSurrogatePair = false
-
-                if (_in >= 0xd800 && _in <= 0xdbff) {
-                    // Hit a high surrogate, try to look for a matching low surrogate
-                    if (i16 + 1 < len) {
-                        var next = utf16[i16 + 1]
-                        if (next >= 0xdc00 && next <= 0xdfff) {
-                            // Found the matching low surrogate
-                            codepoint = (((_in - 0xd800) << 10) + 0x10000) | (next - 0xdc00)
-                            wasSurrogatePair = true
-                        }
-                    }
-                }
-
-                _utf16OffsetToUtf8[i16] = i8
-
-                if (codepoint <= 0x7f) {
-                    _utf8OffsetToUtf16[i8++] = i16
-                }
-                else if (codepoint <= 0x7ff) {
-                    _utf8OffsetToUtf16[i8++] = i16
-                    _utf8OffsetToUtf16[i8++] = i16
-                }
-                else if (codepoint <= 0xffff) {
-                    _utf8OffsetToUtf16[i8++] = i16
-                    _utf8OffsetToUtf16[i8++] = i16
-                    _utf8OffsetToUtf16[i8++] = i16
-                }
-                else {
-                    _utf8OffsetToUtf16[i8++] = i16
-                    _utf8OffsetToUtf16[i8++] = i16
-                    _utf8OffsetToUtf16[i8++] = i16
-                    _utf8OffsetToUtf16[i8++] = i16
-                }
-
-                if (wasSurrogatePair) {
-                    _utf16OffsetToUtf8[i16 + 1] = _utf16OffsetToUtf8[i16]
-                    i16++
-                }
-            }
-        }
-
-    }
-
-    public get utf8Bytes(): Uint8Array {
-        return this._utf8Bytes
+        this.encode(content)
     }
 
     public get content(): string {
@@ -101,16 +33,12 @@ class OnigString {
         return this.source
     }
 
-    public get hasMultiByteCharacters() {
-        return this._hasMultiByteChars
-    }
-
     public convertUtf8OffsetToUtf16(utf8Offset: number): number {
-        if (this._hasMultiByteChars) {
+        if (this.hasMultiByteCharacters) {
             if (utf8Offset < 0) {
                 return 0;
             }
-            if (utf8Offset > this._utf8Bytes.length) {
+            if (utf8Offset > this.utf8Bytes.length) {
                 return this._utf16Bytes.length;
             }
             return this._utf8OffsetToUtf16[utf8Offset];
@@ -119,34 +47,36 @@ class OnigString {
     }
 
     public convertUtf16OffsetToUtf8(utf16Offset: number): number {
-        if (this._hasMultiByteChars) {
+        if (this.hasMultiByteCharacters) {
             if (utf16Offset < 0) {
                 return 0;
             }
             if (utf16Offset > this._utf16Bytes.length) {
-                return this._utf8Bytes.length;
+                return this.utf8Bytes.length;
             }
             return this._utf16OffsetToUtf8[utf16Offset];
         }
         return utf16Offset;
     }
 
-    private encode(str: string): [Uint8Array, Uint16Array] {
+    private encode(str: string): void {
         // NOTE: In this function high performance is million times more critical than fancy looks (and maybe readability)
 
         // For some reason v8 is slower with let or const (so using var)
         var n = str.length
-        var u8view = new Uint8Array(n + 1 /** null termination character */)
-        var u16view = new Uint16Array(n + 1 /** null termination character */)
-        var bytes = []
+        var u8view = new Uint8Array((n * 2) + 1 /** null termination character */)
+        var utf16 = new Uint16Array(n + 1 /** null termination character */)
         var ptrHead = 0
-        var didExtendBuffer = false
-        var i = 0
+        var i16 = 0
+        var i8 = 0
+        var utf16OffsetToUtf8 = new Uint32Array(n + 1)
+        var utf8OffsetToUtf16 = new Uint32Array((n * 2) + 1)
         // for some reason, v8 is faster with str.length than using a variable (might be illusion)
-        while (i < str.length) {
+        while (i16 < str.length) {
             var codepoint
-            var c = str.charCodeAt(i)
-            u16view[i] = c
+            var wasSurrogatePair = false
+            var c = str.charCodeAt(i16)
+            utf16[i16] = c
 
             if (c < 0xD800 || c > 0xDFFF) {
                 codepoint = c
@@ -157,20 +87,19 @@ class OnigString {
             }
 
             else if (0xD800 <= c && c <= 0xDBFF) {
-                if (i === n - 1) {
+                if (i16 === n - 1) {
                     codepoint = 0xFFFD
                 }
                 else {
-                    var d = str.charCodeAt(i + 1)
+                    var d = str.charCodeAt(i16 + 1)
 
                     if (0xDC00 <= d && d <= 0xDFFF) {
                         var a = c & 0x3FF
 
                         var b = d & 0x3FF
-
+                        wasSurrogatePair = true
                         codepoint = 0x10000 + (a << 10) + b
-                        i += 1
-                        u16view[i] = d
+                        utf16[i16] = d
                     }
 
                     else {
@@ -181,28 +110,31 @@ class OnigString {
 
             var bytesRequiredToEncode = 0
             var offset
-
+            utf16OffsetToUtf8[i16] = i8
             if (0x00 <= codepoint && codepoint <= 0x7F) {
                 bytesRequiredToEncode = 1
+                utf8OffsetToUtf16[i8++] = i16
             }
-            if (0x0080 <= codepoint && codepoint <= 0x07FF) {
+            else if (0x0080 <= codepoint && codepoint <= 0x07FF) {
                 bytesRequiredToEncode = 2
                 offset = 0xC0
+                utf8OffsetToUtf16[i8++] = i16
+                utf8OffsetToUtf16[i8++] = i16
             }
             else if (0x0800 <= codepoint && codepoint <= 0xFFFF) {
                 bytesRequiredToEncode = 3
                 offset = 0xE0
+                utf8OffsetToUtf16[i8++] = i16
+                utf8OffsetToUtf16[i8++] = i16
+                utf8OffsetToUtf16[i8++] = i16
             }
             else if (0x10000 <= codepoint && codepoint <= 0x10FFFF) {
                 bytesRequiredToEncode = 4
                 offset = 0xF0
-            }
-
-            if ((ptrHead + bytesRequiredToEncode) > u8view.length) {
-                var newView = new Uint8Array(u8view.byteLength + (str.length + bytesRequiredToEncode))
-                newView.set(u8view)
-                u8view = newView
-                didExtendBuffer = true
+                utf8OffsetToUtf16[i8++] = i16
+                utf8OffsetToUtf16[i8++] = i16
+                utf8OffsetToUtf16[i8++] = i16
+                utf8OffsetToUtf16[i8++] = i16
             }
 
             if (bytesRequiredToEncode === 1) {
@@ -221,13 +153,27 @@ class OnigString {
                 }
             }
 
-            i += 1
+            if(wasSurrogatePair) {
+                utf16OffsetToUtf8[i16 + 1] = utf16OffsetToUtf8[i16]
+                i16++
+            }
+            i16++
         }
 
-        var utf8 = didExtendBuffer ? new Uint8Array(u8view.buffer, 0, ptrHead + 1 /** null termination char */) : u8view
+        var utf8 = u8view.slice(0, ptrHead + 1 /** null termination char */)
         utf8[utf8.length] = 0x00
-        u16view[u16view.length] = 0x00
-        return [utf8, u16view]
+        utf16[utf16.length] = 0x00
+
+        
+        this.utf8Bytes = utf8
+        this._utf16Bytes = utf16
+        this.hasMultiByteCharacters = utf8.length > utf16.length
+        
+        utf8OffsetToUtf16 = utf8OffsetToUtf16.slice(0, utf8.length)
+        utf8OffsetToUtf16[utf8.length - 1] = utf16.length - 1
+        this._utf8OffsetToUtf16 = utf8OffsetToUtf16
+        utf16OffsetToUtf8[utf16.length - 1] = utf8.length - 1
+        this._utf16OffsetToUtf8 = utf16OffsetToUtf8
     }
 
 
