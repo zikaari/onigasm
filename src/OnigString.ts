@@ -64,7 +64,7 @@ class OnigString {
 
         // For some reason v8 is slower with let or const (so using var)
         var n = str.length
-        var u8view = new Uint8Array((n * 2) + 1 /** null termination character */)
+        var utf8 = new Uint8Array((n * 2) /** allocate max space now, trim later */ + 1 /** null termination character */)
         var utf16 = new Uint16Array(n + 1 /** null termination character */)
         var ptrHead = 0
         var i16 = 0
@@ -138,16 +138,16 @@ class OnigString {
             }
 
             if (bytesRequiredToEncode === 1) {
-                u8view[ptrHead++] = codepoint
+                utf8[ptrHead++] = codepoint
             }
             else {
-                u8view[ptrHead++] = (codepoint >> (6 * (--bytesRequiredToEncode))) + offset
+                utf8[ptrHead++] = (codepoint >> (6 * (--bytesRequiredToEncode))) + offset
 
                 while (bytesRequiredToEncode > 0) {
 
                     var temp = codepoint >> (6 * (bytesRequiredToEncode - 1))
 
-                    u8view[ptrHead++] = (0x80 | (temp & 0x3F))
+                    utf8[ptrHead++] = (0x80 | (temp & 0x3F))
 
                     bytesRequiredToEncode -= 1
                 }
@@ -160,7 +160,7 @@ class OnigString {
             i16++
         }
 
-        var utf8 = u8view.slice(0, ptrHead + 1 /** null termination char */)
+        utf8 = utf8.slice(0, ptrHead + 1 /** null termination char */)
         utf8[utf8.length] = 0x00
         utf16[utf16.length] = 0x00
 
