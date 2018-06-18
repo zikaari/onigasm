@@ -19,7 +19,7 @@ loadWASM(wasmBin).then(() => {
     log()
     const test = (charCount) => {
         let t0 = StopWatch.now()
-        let stepCount = 5
+        let stepCount = 50
         let stepFactor = charCount / 5
         for (let i = 0; i < 100; i++) {
             for (let j = 0; j < stepCount; j++) {
@@ -29,7 +29,7 @@ loadWASM(wasmBin).then(() => {
         log(`Uncached strings < ${charCount} characters\n:`, StopWatch.now() - t0, 'ms')
     
         t0 = StopWatch.now()
-        var onig_strs = Array(stepCount).map((_, i) => new OnigString(str.slice(0, stepFactor * i)))
+        var onig_strs = Array(stepCount).fill(undefined).map((_, i) => new OnigString(str.slice(0, stepFactor * i)))
         for (let i = 0; i < 100; i++) {
             for(let j = 0; j < stepCount; j++) {
                 scanner.findNextMatchSync(onig_strs[j])

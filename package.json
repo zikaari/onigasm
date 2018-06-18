@@ -35,6 +35,7 @@
   "devDependencies": {
     "@types/lru-cache": "^4.1.0",
     "concurrently": "^3.5.1",
+    "durations": "^3.4.1",
     "jasmine-focused": "^1.0.7",
     "onchange": "^3.3.0",
     "typescript": "^2.7.1"
