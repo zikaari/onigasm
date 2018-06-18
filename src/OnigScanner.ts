@@ -141,9 +141,7 @@ export class OnigScanner {
                 // int strLen
                 onigString.utf8Bytes.length - 1,
                 // int startOffset
-                onigString.hasMultiByteCharacters
-                    ? onigString.convertUtf16OffsetToUtf8(startPosition)
-                    : startPosition,
+                onigString.convertUtf16OffsetToUtf8(startPosition),
                 // int *resultInfo
                 resultInfoReceiverPtr
             ]
@@ -175,12 +173,8 @@ export class OnigScanner {
             let captureIdx = 0
             while (i < encodedResultLength) {
                 var index = captureIdx++
-                var start = encodedResult[i++]
-                var end = encodedResult[i++]
-                if(onigString.hasMultiByteCharacters) {
-                    start = onigString.convertUtf8OffsetToUtf16(start)
-                    end = onigString.convertUtf8OffsetToUtf16(end)
-                }
+                var start = onigString.convertUtf8OffsetToUtf16(encodedResult[i++])
+                var end = onigString.convertUtf8OffsetToUtf16(encodedResult[i++])
                 var length = end - start
                 captureIndices.push({
                     index,
