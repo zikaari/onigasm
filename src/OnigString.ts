@@ -1,7 +1,7 @@
 class OnigString {
     private source: string
-    private _utf8Bytes: Uint8Array
-    private _utf16OffsetToUtf8: Int32Array;
+    private _utf8Bytes: Uint8Array | null
+    private _utf16OffsetToUtf8: Int32Array | null;
 
     constructor(content: string) {
         if (typeof content !== 'string') {
@@ -18,6 +18,16 @@ class OnigString {
             this.encode();
         }
         return this._utf8Bytes
+    }
+
+    /**
+     * Returns `null` if all utf8 offsets match utf-16 offset (content has no multi byte characters)
+     */
+    private get utf16OffsetToUtf8(): Int32Array {
+        if (!this._utf8Bytes) {
+            this.encode();
+        }
+        return this._utf16OffsetToUtf8
     }
 
     public get content(): string {
@@ -37,19 +47,21 @@ class OnigString {
     }
 
     public get hasMultiByteCharacters() {
-        return this._utf8Bytes.length !== this.source.length + 1;
+        return this.utf16OffsetToUtf8 !== null;
     }
 
     public convertUtf8OffsetToUtf16(utf8Offset: number): number {
         if (utf8Offset < 0) {
             return 0;
-        }        
+        }
         let utf8Array = this._utf8Bytes;
         if (utf8Offset >= utf8Array.length - 1) {
             return this.source.length;
         }
-        if (utf8Array.length !== this.source.length + 1) {
-            return findFirstInSorted(this._utf16OffsetToUtf8, utf8Offset);
+
+        const utf8OffsetMap = this.utf16OffsetToUtf8;
+        if (utf8OffsetMap) {
+            return findFirstInSorted(utf8OffsetMap, utf8Offset);
         }
         return utf8Offset;
     }
@@ -57,19 +69,20 @@ class OnigString {
     public convertUtf16OffsetToUtf8(utf16Offset: number): number {
         if (utf16Offset < 0) {
             return 0;
-        }        
+        }
         let utf8Array = this._utf8Bytes;
         if (utf16Offset >= this.source.length) {
             return utf8Array.length - 1;
         }
 
-        if (utf8Array.length !== this.source.length + 1) {
-            return this._utf16OffsetToUtf8[utf16Offset];
+        const utf8OffsetMap = this.utf16OffsetToUtf8;
+        if (utf8OffsetMap) {
+            return utf8OffsetMap[utf16Offset];
         }
         return utf16Offset;
     }
 
-    private encode() : void {
+    private encode(): void {
         // NOTE: In this function high performance is million times more critical than fancy looks (and maybe readability)
         const str = this.source;
 
@@ -168,28 +181,30 @@ class OnigString {
         utf8[ptrHead] = 0x00
 
         this._utf8Bytes = utf8;
-        this._utf16OffsetToUtf8 = utf16OffsetToUtf8;
+        if (this._utf8Bytes.length !== this.source.length + 1) {
+            this._utf16OffsetToUtf8 = utf16OffsetToUtf8;
+        }
     }
 }
 
 
 function findFirstInSorted<T>(array: Int32Array, i: number): number {
-	let low = 0, high = array.length;
-	if (high === 0) {
-		return 0; // no children
-	}
-	while (low < high) {
-		let mid = Math.floor((low + high) / 2);
-		if (array[mid] >= i) {
-			high = mid;
-		} else {
-			low = mid + 1;
-		}
+    let low = 0, high = array.length;
+    if (high === 0) {
+        return 0; // no children
+    }
+    while (low < high) {
+        let mid = Math.floor((low + high) / 2);
+        if (array[mid] >= i) {
+            high = mid;
+        } else {
+            low = mid + 1;
+        }
     }
     if (array[low] > i) {
         low--;
     }
-	return low;
+    return low;
 }
 
 export default OnigString
