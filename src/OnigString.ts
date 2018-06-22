@@ -1,7 +1,10 @@
+
+type UintArray = Uint8Array | Uint16Array | Uint32Array;
+
 class OnigString {
     private source: string
     private _utf8Bytes: Uint8Array | null
-    private _utf16OffsetToUtf8: Int32Array | null;
+    private _utf16OffsetToUtf8: UintArray | null;
 
     constructor(content: string) {
         if (typeof content !== 'string') {
@@ -23,7 +26,7 @@ class OnigString {
     /**
      * Returns `null` if all utf8 offsets match utf-16 offset (content has no multi byte characters)
      */
-    private get utf16OffsetToUtf8(): Int32Array {
+    private get utf16OffsetToUtf8(): UintArray {
         if (!this._utf8Bytes) {
             this.encode();
         }
@@ -85,11 +88,20 @@ class OnigString {
     private encode(): void {
         // NOTE: In this function high performance is million times more critical than fancy looks (and maybe readability)
         const str = this.source;
+        const n = str.length;
 
-        const utf16OffsetToUtf8 = new Int32Array(str.length);
+        const maxUtf8Len = n;
+
+        let utf16OffsetToUtf8: UintArray;
+        if (maxUtf8Len <= 0xff) {
+            utf16OffsetToUtf8 = new Uint8Array(n);
+        } else if (maxUtf8Len <= 0xffff) {
+            utf16OffsetToUtf8 = new Uint16Array(n);
+        } else {
+            utf16OffsetToUtf8 = new Uint32Array(n);
+        }
 
         // For some reason v8 is slower with let or const (so using var)
-        const n = str.length
         let u8view = new Uint8Array(n + 1 /** null termination character */)
         const bytes = []
         let ptrHead = 0
@@ -98,18 +110,18 @@ class OnigString {
         // for some reason, v8 is faster with str.length than using a variable (might be illusion)
         while (i < str.length) {
             let codepoint
-            let c = str.charCodeAt(i)
+            const c = str.charCodeAt(i)
             utf16OffsetToUtf8[i] = ptrHead;
 
             if (c < 0xD800 || c > 0xDFFF) {
                 codepoint = c
             }
 
-            else if (0xDC00 <= c && c <= 0xDFFF) {
+            else if (c >= 0xDC00) {
                 codepoint = 0xFFFD
             }
 
-            else if (0xD800 <= c && c <= 0xDBFF) {
+            else {
                 if (i === n - 1) {
                     codepoint = 0xFFFD
                 }
@@ -132,21 +144,19 @@ class OnigString {
                 }
             }
 
-            let bytesRequiredToEncode = 0
-            let offset
+            let bytesRequiredToEncode: number
+            let offset: number;
 
-            if (0x00 <= codepoint && codepoint <= 0x7F) {
+            if (codepoint <= 0x7F) {
                 bytesRequiredToEncode = 1
-            }
-            if (0x0080 <= codepoint && codepoint <= 0x07FF) {
+                offset = 0;
+            } else if (codepoint <= 0x07FF) {
                 bytesRequiredToEncode = 2
                 offset = 0xC0
-            }
-            else if (0x0800 <= codepoint && codepoint <= 0xFFFF) {
+            } else if (codepoint <= 0xFFFF) {
                 bytesRequiredToEncode = 3
                 offset = 0xE0
-            }
-            else if (0x10000 <= codepoint && codepoint <= 0x10FFFF) {
+            } else {
                 bytesRequiredToEncode = 4
                 offset = 0xF0
             }
@@ -188,7 +198,7 @@ class OnigString {
 }
 
 
-function findFirstInSorted<T>(array: Int32Array, i: number): number {
+function findFirstInSorted<T>(array: UintArray, i: number): number {
     let low = 0, high = array.length;
     if (high === 0) {
         return 0; // no children
