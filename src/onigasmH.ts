@@ -23,7 +23,7 @@ async function initModule(bytes: ArrayBuffer) {
                         throw e
                     })
                 return {}
-            }
+            },
         })
             .then(moduleH => {
                 onigasmH = moduleH
