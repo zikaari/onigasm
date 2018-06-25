@@ -11,7 +11,7 @@ class OnigString {
     private _mappingTableStartOffset: number
     /**
      * utf-16 to utf-8 mapping table for all uft-8 indexes starting at `_mappingTableStartOffset`. utf8-index are always starting at 0.
-     * `null` if there are no multibyte characters in the string and all utf-8 indexes are matching the utf-16 indexes.
+     * `null` if there are no multibyte characters in the utf8 string and all utf-8 indexes are matching the utf-16 indexes.
      * Example: _mappingTableStartOffset === 10, _utf16OffsetToUtf8 = [0, 3, 6] -> _utf8Indexes[10] = 10, _utf8Indexes[11] = 13
      */
     private _utf8Indexes: UintArray | null
@@ -36,7 +36,7 @@ class OnigString {
     /**
      * Returns `null` if all utf8 offsets match utf-16 offset (content has no multi byte characters)
      */
-    private get utf16OffsetToUtf8(): UintArray {
+    private get utf8Indexes(): UintArray {
         if (!this._utf8Bytes) {
             this.encode()
         }
@@ -60,7 +60,7 @@ class OnigString {
     }
 
     public get hasMultiByteCharacters() {
-        return this.utf16OffsetToUtf8 !== null
+        return this.utf8Indexes !== null
     }
 
     public convertUtf8OffsetToUtf16(utf8Offset: number): number {
@@ -72,7 +72,7 @@ class OnigString {
             return this.source.length
         }
 
-        const utf8OffsetMap = this.utf16OffsetToUtf8;
+        const utf8OffsetMap = this.utf8Indexes;
         if (utf8OffsetMap && utf8Offset >= this._mappingTableStartOffset) {
             return findFirstInSorted(utf8OffsetMap, utf8Offset - this._mappingTableStartOffset) + this._mappingTableStartOffset;
         }
@@ -88,7 +88,7 @@ class OnigString {
             return utf8Array.length - 1
         }
 
-        const utf8OffsetMap = this.utf16OffsetToUtf8;
+        const utf8OffsetMap = this.utf8Indexes;
         if (utf8OffsetMap && utf16Offset >= this._mappingTableStartOffset) {
             return utf8OffsetMap[utf16Offset - this._mappingTableStartOffset] + this._mappingTableStartOffset;
         }
@@ -116,8 +116,7 @@ class OnigString {
         }
 
         // For some reason v8 is slower with let or const (so using var)
-        const u8view = new Uint8Array((n * 4) /* alloc max now, trim later*/ + 1 /** null termination character */)
-        const bytes = []
+        const u8view = new Uint8Array((n * 3) /* alloc max now, trim later*/ + 1 /** null termination character */)
 
         let ptrHead = 0
         let i = 0
@@ -209,7 +208,7 @@ class OnigString {
         utf8[ptrHead] = 0x00
 
         this._utf8Bytes = utf8
-        if (this._utf8Bytes.length !== this.source.length + 1) {
+        if (utf16OffsetToUtf8) { // set if UTF-16 surrogate chars or multi-byte characters found
             this._utf8Indexes = utf16OffsetToUtf8;
             this._mappingTableStartOffset = mappingTableStartOffset;
         }
@@ -232,13 +231,13 @@ function findFirstInSorted<T>(array: UintArray, i: number): number {
         }
     }
 
-    // low is on the index of the first value >= i
+    // low is on the index of the first value >= i or array.length. Decrement low until we find array[low] <= i 
     while (low > 0 && (low >= array.length || array[low] > i)) {
         low--;
     }
-    // low is on the index of the first value < i
+    // check wheater we are on the second index of a utf-16 surrogate char. If so, go to the first index.
     if (low > 0 && array[low] === array[low - 1]) {
-        low--; // UTF8 double byte
+        low--;
     }
 
     return low;
