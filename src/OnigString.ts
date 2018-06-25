@@ -83,17 +83,13 @@ class OnigString {
     }
 
     private encode(): void {
-        // NOTE: In this function high performance is million times more critical than fancy looks (and maybe readability)
         const str = this.source;
 
         const utf16OffsetToUtf8 = new Int32Array(str.length);
 
-        // For some reason v8 is slower with let or const (so using var)
         const n = str.length
-        let u8view = new Uint8Array(n + 1 /** null termination character */)
-        const bytes = []
+        let u8view = new Uint8Array((n * 4) /* alloc max now, trim later*/ + 1 /** null termination character */)
         let ptrHead = 0
-        let didExtendBuffer = false
         let i = 0
         // for some reason, v8 is faster with str.length than using a variable (might be illusion)
         while (i < str.length) {
@@ -151,13 +147,6 @@ class OnigString {
                 offset = 0xF0
             }
 
-            if ((ptrHead + bytesRequiredToEncode + 1) > u8view.length) {
-                const newView = new Uint8Array(u8view.byteLength + (str.length + bytesRequiredToEncode + 1))
-                newView.set(u8view)
-                u8view = newView
-                didExtendBuffer = true
-            }
-
             if (bytesRequiredToEncode === 1) {
                 u8view[ptrHead++] = codepoint
             }
@@ -177,7 +166,7 @@ class OnigString {
             i += 1
         }
 
-        const utf8 = didExtendBuffer ? new Uint8Array(u8view.buffer, 0, ptrHead + 1 /** null termination char */) : u8view
+        const utf8 = u8view.slice(0, ptrHead + 1)
         utf8[ptrHead] = 0x00
 
         this._utf8Bytes = utf8;
