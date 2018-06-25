@@ -28,7 +28,7 @@ class OnigString {
 
     public get utf8Bytes(): Uint8Array {
         if (!this._utf8Bytes) {
-            this.encode();
+            this.encode()
         }
         return this._utf8Bytes
     }
@@ -38,7 +38,7 @@ class OnigString {
      */
     private get utf16OffsetToUtf8(): UintArray {
         if (!this._utf8Bytes) {
-            this.encode();
+            this.encode()
         }
         return this._utf8Indexes
     }
@@ -60,43 +60,43 @@ class OnigString {
     }
 
     public get hasMultiByteCharacters() {
-        return this.utf16OffsetToUtf8 !== null;
+        return this.utf16OffsetToUtf8 !== null
     }
 
     public convertUtf8OffsetToUtf16(utf8Offset: number): number {
         if (utf8Offset < 0) {
-            return 0;
+            return 0
         }
-        let utf8Array = this._utf8Bytes;
+        const utf8Array = this._utf8Bytes
         if (utf8Offset >= utf8Array.length - 1) {
-            return this.source.length;
+            return this.source.length
         }
 
         const utf8OffsetMap = this.utf16OffsetToUtf8;
         if (utf8OffsetMap && utf8Offset >= this._mappingTableStartOffset) {
             return findFirstInSorted(utf8OffsetMap, utf8Offset - this._mappingTableStartOffset) + this._mappingTableStartOffset;
         }
-        return utf8Offset;
+        return utf8Offset
     }
 
     public convertUtf16OffsetToUtf8(utf16Offset: number): number {
         if (utf16Offset < 0) {
-            return 0;
+            return 0
         }
-        let utf8Array = this._utf8Bytes;
+        const utf8Array = this._utf8Bytes
         if (utf16Offset >= this.source.length) {
-            return utf8Array.length - 1;
+            return utf8Array.length - 1
         }
 
         const utf8OffsetMap = this.utf16OffsetToUtf8;
         if (utf8OffsetMap && utf16Offset >= this._mappingTableStartOffset) {
             return utf8OffsetMap[utf16Offset - this._mappingTableStartOffset] + this._mappingTableStartOffset;
         }
-        return utf16Offset;
+        return utf16Offset
     }
 
     private encode(): void {
-        // NOTE: In this function high performance is million times more critical than fancy looks (and maybe readability)
+      
         const str = this.source;
         const n = str.length;
         let utf16OffsetToUtf8: UintArray;
@@ -116,15 +116,16 @@ class OnigString {
         }
 
         // For some reason v8 is slower with let or const (so using var)
-        let u8view = new Uint8Array(n + 1 /** null termination character */)
+        const u8view = new Uint8Array((n * 4) /* alloc max now, trim later*/ + 1 /** null termination character */)
         const bytes = []
+
         let ptrHead = 0
-        let didExtendBuffer = false
         let i = 0
         // for some reason, v8 is faster with str.length than using a variable (might be illusion)
         while (i < str.length) {
             let codepoint
             const c = str.charCodeAt(i)
+
             if (utf16OffsetToUtf8) {
                 utf16OffsetToUtf8[utf8Offset++] = ptrHead - mappingTableStartOffset;
             }
@@ -142,7 +143,7 @@ class OnigString {
                     codepoint = 0xFFFD
                 }
                 else {
-                    let d = str.charCodeAt(i + 1)
+                    const d = str.charCodeAt(i + 1)
 
                     if (0xDC00 <= d && d <= 0xDFFF) {
                         if (!utf16OffsetToUtf8) {
@@ -182,13 +183,6 @@ class OnigString {
                 offset = 0xF0
             }
 
-            if ((ptrHead + bytesRequiredToEncode + 1) > u8view.length) {
-                const newView = new Uint8Array(u8view.byteLength + (str.length + bytesRequiredToEncode + 1))
-                newView.set(u8view)
-                u8view = newView
-                didExtendBuffer = true
-            }
-
             if (bytesRequiredToEncode === 1) {
                 u8view[ptrHead++] = codepoint
             }
@@ -211,10 +205,10 @@ class OnigString {
             i += 1
         }
 
-        const utf8 = didExtendBuffer ? new Uint8Array(u8view.buffer, 0, ptrHead + 1 /** null termination char */) : u8view
+        const utf8 = u8view.slice(0, ptrHead + 1)
         utf8[ptrHead] = 0x00
 
-        this._utf8Bytes = utf8;
+        this._utf8Bytes = utf8
         if (this._utf8Bytes.length !== this.source.length + 1) {
             this._utf8Indexes = utf16OffsetToUtf8;
             this._mappingTableStartOffset = mappingTableStartOffset;
@@ -223,18 +217,21 @@ class OnigString {
 }
 
 function findFirstInSorted<T>(array: UintArray, i: number): number {
-    let low = 0, high = array.length;
+    let low = 0
+    let high = array.length
+
     if (high === 0) {
-        return 0; // no children
+        return 0 // no children
     }
     while (low < high) {
-        let mid = Math.floor((low + high) / 2);
+        const mid = Math.floor((low + high) / 2)
         if (array[mid] >= i) {
-            high = mid;
+            high = mid
         } else {
-            low = mid + 1;
+            low = mid + 1
         }
     }
+
     // low is on the index of the first value >= i
     while (low > 0 && (low >= array.length || array[low] > i)) {
         low--;
@@ -245,6 +242,7 @@ function findFirstInSorted<T>(array: UintArray, i: number): number {
     }
 
     return low;
+
 }
 
 export default OnigString
