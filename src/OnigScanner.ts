@@ -79,7 +79,7 @@ export class OnigScanner {
      * @param callback The (error, match) function to call when done, match will null when there is no match
      */
     public findNextMatch(string: string | OnigString, startPosition: number, callback: (err, match?: IOnigMatch) => void) {
-        if (startPosition == null) {startPosition = 0}
+        if (startPosition == null) { startPosition = 0 }
         if (typeof startPosition === 'function') {
             callback = startPosition
             startPosition = 0
@@ -174,13 +174,16 @@ export class OnigScanner {
             let captureIdx = 0
             while (i < encodedResultLength) {
                 const index = captureIdx++
-                const start = onigString.convertUtf8OffsetToUtf16(encodedResult[i++])
-                const end = onigString.convertUtf8OffsetToUtf16(encodedResult[i++])
-                const length = end - start
+                let start = encodedResult[i++]
+                let end = encodedResult[i++]
+                if (onigString.hasMultiByteCharacters) {
+                    start = onigString.convertUtf8OffsetToUtf16(start)
+                    end = onigString.convertUtf8OffsetToUtf16(end)
+                }
                 captureIndices.push({
                     end,
                     index,
-                    length,
+                    length: end - start,
                     start,
                 })
             }
