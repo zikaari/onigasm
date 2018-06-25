@@ -4,15 +4,15 @@ import { Cache } from 'lru-cache'
 const LRUCache = require('lru-cache')
 // ugly code end
 
-import OnigString from './OnigString'
 import { onigasmH } from './onigasmH'
+import OnigString from './OnigString'
 
 /**
  * Every instance of OnigScanner internally calls native libonig API
  * Since (at the moment) transferring complex objects between C runtime and JS runtime is not easy,
  * pointers are used to tap into their runtimes to read values (for example result of regex match)
  */
-interface NativeOnigHInfo {
+interface INativeOnigHInfo {
     /**
      * regex_t* is used by libonig to match string against an expression
      * this is the output of compiling raw string pattern to libonig's internal representation
@@ -33,20 +33,20 @@ export interface IOnigMatch {
     scanner: OnigScanner
 }
 
-const cache: Cache<OnigScanner, NativeOnigHInfo> = new LRUCache({
-    max: 1000,
-    dispose: (scanner: OnigScanner, info: NativeOnigHInfo) => {
+const cache: Cache<OnigScanner, INativeOnigHInfo> = new LRUCache({
+    dispose: (scanner: OnigScanner, info: INativeOnigHInfo) => {
         const status = onigasmH.ccall(
             'disposeCompiledPatterns',
             'number',
             ['array', 'number'],
-            [info.regexTPtrs, scanner.patterns.length]
+            [info.regexTPtrs, scanner.patterns.length],
         )
         if (status !== 0) {
             const errString = onigasmH.ccall('getLastError', 'string')
             throw new Error(errString)
         }
-    }
+    },
+    max: 1000,
 })
 
 export class OnigScanner {
@@ -79,7 +79,7 @@ export class OnigScanner {
      * @param callback The (error, match) function to call when done, match will null when there is no match
      */
     public findNextMatch(string: string | OnigString, startPosition: number, callback: (err, match?: IOnigMatch) => void) {
-        if (startPosition == null) startPosition = 0
+        if (startPosition == null) {startPosition = 0}
         if (typeof startPosition === 'function') {
             callback = startPosition
             startPosition = 0
@@ -103,12 +103,13 @@ export class OnigScanner {
         startPosition = this.convertToNumber(startPosition)
 
         let onigNativeInfo = cache.get(this)
+        let status = 0
         if (!onigNativeInfo) {
             const regexTAddrRecieverPtr = onigasmH._malloc(4)
             const regexTPtrs = []
             for (let i = 0; i < this.sources.length; i++) {
                 const pattern = this.sources[i];
-                const status = onigasmH.ccall('compilePattern', 'number', ['string', 'number'], [pattern, regexTAddrRecieverPtr])
+                status = onigasmH.ccall('compilePattern', 'number', ['string', 'number'], [pattern, regexTAddrRecieverPtr])
                 if (status !== 0) {
                     const errString = onigasmH.ccall('getLastError', 'string')
                     throw new Error(errString)
@@ -127,7 +128,7 @@ export class OnigScanner {
         const onigString = string instanceof OnigString ? string : new OnigString(this.convertToString(string))
         const strPtr = onigasmH._malloc(onigString.utf8Bytes.length)
         onigasmH.HEAPU8.set(onigString.utf8Bytes, strPtr)
-        const status = onigasmH.ccall(
+        status = onigasmH.ccall(
             'findBestMatch',
             'number',
             ['array', 'number', 'number', 'number', 'number', 'number'],
@@ -143,8 +144,8 @@ export class OnigScanner {
                 // int startOffset
                 onigString.convertUtf16OffsetToUtf8(startPosition),
                 // int *resultInfo
-                resultInfoReceiverPtr
-            ]
+                resultInfoReceiverPtr,
+            ],
         )
         if (status !== 0) {
             const errString = onigasmH.ccall('getLastError', 'string')
@@ -172,21 +173,21 @@ export class OnigScanner {
             let i = 0
             let captureIdx = 0
             while (i < encodedResultLength) {
-                var index = captureIdx++
-                var start = onigString.convertUtf8OffsetToUtf16(encodedResult[i++])
-                var end = onigString.convertUtf8OffsetToUtf16(encodedResult[i++])
-                var length = end - start
+                const index = captureIdx++
+                const start = onigString.convertUtf8OffsetToUtf16(encodedResult[i++])
+                const end = onigString.convertUtf8OffsetToUtf16(encodedResult[i++])
+                const length = end - start
                 captureIndices.push({
-                    index,
-                    start,
                     end,
+                    index,
                     length,
+                    start,
                 })
             }
             onigasmH._free(encodedResultBeginAddress)
             return {
-                index: bestPatternIdx,
                 captureIndices,
+                index: bestPatternIdx,
                 scanner: this,
             }
         }
@@ -194,14 +195,14 @@ export class OnigScanner {
     }
 
     public convertToString(value) {
-        if (value === undefined) return 'undefined'
-        if (value === null) return 'null'
-        if (value instanceof OnigString) return value.content
+        if (value === undefined) { return 'undefined' }
+        if (value === null) { return 'null' }
+        if (value instanceof OnigString) { return value.content }
         return value.toString()
     }
 
     public convertToNumber(value) {
-        value = parseInt(value)
+        value = parseInt(value, 10)
         if (!isFinite(value)) { value = 0 }
         value = Math.max(value, 0)
         return value
