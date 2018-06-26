@@ -114,7 +114,6 @@ class OnigString {
             utf16OffsetToUtf8[utf8Offset++] = 0
         }
 
-        // For some reason v8 is slower with let or const (so using var)
         const u8view = new Uint8Array((n * 3) /* alloc max now, trim later*/ + 1 /** null termination character */)
 
         let ptrHead = 0
@@ -234,7 +233,7 @@ function findFirstInSorted<T>(array: UintArray, i: number): number {
     while (low > 0 && (low >= array.length || array[low] > i)) {
         low--
     }
-    // check wheater we are on the second index of a utf-16 surrogate char. If so, go to the first index.
+    // check whether we are on the second index of a utf-16 surrogate char. If so, go to the first index.
     if (low > 0 && array[low] === array[low - 1]) {
         low--
     }
