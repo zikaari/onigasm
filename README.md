@@ -50,5 +50,5 @@ ___
 
 ### Contributors/Maintainers
 - [@neeksandhu](https://github.com/NeekSandhu) (Neek Sandhu)
-- [@aeschli](https://github.com/NeekSandhu) (Martin Aeschlimann)
+- [@aeschli](https://github.com/aeschli) (Martin Aeschlimann)
 
