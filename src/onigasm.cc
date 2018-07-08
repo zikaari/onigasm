@@ -17,14 +17,31 @@ char *getLastError()
 }
 
 EMSCRIPTEN_KEEPALIVE
-int compilePattern(UChar *pattern, int *regexTPtr)
+int compilePattern(UChar *pattern, int *regexTPtr, int syntaxCode)
 {
   int r;
   regex_t *reg;
   OnigErrorInfo einfo;
+  OnigSyntaxType *syntax;
+  // see enum OnigSyntax in `./OnigScanner.ts`
+  switch (syntaxCode)
+  {
+  case 3:
+    syntax = ONIG_SYNTAX_POSIX_EXTENDED;
+    break;
+  case 7:
+    syntax = ONIG_SYNTAX_JAVA;
+    break;
+  case 8:
+    syntax = ONIG_SYNTAX_PERL_NG;
+    break;
+  default:
+    syntax = ONIG_SYNTAX_DEFAULT;
+  }
+
   r = onig_new(&reg, pattern, pattern + strlen((char *)pattern),
                ONIG_OPTION_CAPTURE_GROUP, ONIG_ENCODING_UTF8,
-               ONIG_SYNTAX_DEFAULT, &einfo);
+               syntax, &einfo);
   if (r != ONIG_NORMAL)
   {
     lastErrCode = r;

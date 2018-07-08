@@ -1,4 +1,4 @@
-import OnigScanner, { IOnigCaptureIndex } from './OnigScanner'
+import OnigScanner, { IOnigCaptureIndex, IOnigOptions } from './OnigScanner'
 import OnigString from './OnigString';
 
 export interface IOnigSearchResult extends IOnigCaptureIndex {
@@ -11,12 +11,13 @@ class OnigRegExp {
     /**
      * Create a new regex with the given pattern
      * @param source A string pattern
+     * @param options Optional settings to specify syntax/regex flavour
      */
-    constructor(source: string) {
+    constructor(source: string, options?: IOnigOptions) {
         this.source = source
 
         try {
-            this.scanner = new OnigScanner([this.source])
+            this.scanner = new OnigScanner([this.source], options)
         } catch (error) {
             // doesn't make much sense, but this to pass atom/node-oniguruam tests
         }

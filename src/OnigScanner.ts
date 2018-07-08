@@ -20,6 +20,29 @@ interface INativeOnigHInfo {
     regexTPtrs: Uint8Array | null
 }
 
+enum OnigSyntax {
+    ONIG_SYNTAX_ONIGURUMA,
+    ONIG_SYNTAX_ASIS,
+    ONIG_SYNTAX_POSIX_BASIC,
+    ONIG_SYNTAX_POSIX_EXTENDED,
+    ONIG_SYNTAX_EMACS,
+    ONIG_SYNTAX_GREP,
+    ONIG_SYNTAX_GNU_REGEX,
+    ONIG_SYNTAX_JAVA,
+    ONIG_SYNTAX_PERL,
+    ONIG_SYNTAX_PERL_NG,
+    ONIG_SYNTAX_RUBY,
+}
+
+export interface IOnigOptions {
+    syntax: 'perl' | 'posix' | 'java'
+}
+
+const onigSyntaxMap = new Map<string, OnigSyntax>()
+    .set('perl', OnigSyntax.ONIG_SYNTAX_PERL_NG)
+    .set('posix', OnigSyntax.ONIG_SYNTAX_POSIX_EXTENDED)
+    .set('java', OnigSyntax.ONIG_SYNTAX_JAVA)
+
 export interface IOnigCaptureIndex {
     index: number
     start: number
@@ -51,11 +74,13 @@ const cache: Cache<OnigScanner, INativeOnigHInfo> = new LRUCache({
 
 export class OnigScanner {
     private sources: string[]
+    private syntax: OnigSyntax = OnigSyntax.ONIG_SYNTAX_ONIGURUMA
     /**
      * Create a new scanner with the given patterns
      * @param patterns  An array of string patterns
+     * @param options Optional settings to specify syntax/regex flavour
      */
-    constructor(patterns: string[]) {
+    constructor(patterns: string[], options?: IOnigOptions) {
         if (onigasmH === null) {
             throw new Error(`Onigasm has not been initialized, call loadWASM from 'onigasm' exports before using any other API`)
         }
@@ -65,6 +90,15 @@ export class OnigScanner {
                 throw new TypeError(`First parameter to OnigScanner constructor must be array of (pattern) strings`)
             }
         }
+
+        if (options && typeof options.syntax === 'string') {
+            if (onigSyntaxMap.has(options.syntax)) {
+                this.syntax = onigSyntaxMap.get(options.syntax)
+            } else {
+                throw new Error(`Unsupported syntax ${options.syntax}`)
+            }
+        }
+
         this.sources = patterns.slice()
     }
 
@@ -109,7 +143,7 @@ export class OnigScanner {
             const regexTPtrs = []
             for (let i = 0; i < this.sources.length; i++) {
                 const pattern = this.sources[i];
-                status = onigasmH.ccall('compilePattern', 'number', ['string', 'number'], [pattern, regexTAddrRecieverPtr])
+                status = onigasmH.ccall('compilePattern', 'number', ['string', 'number'], [pattern, regexTAddrRecieverPtr], this.syntax)
                 if (status !== 0) {
                     const errString = onigasmH.ccall('getLastError', 'string')
                     throw new Error(errString)
