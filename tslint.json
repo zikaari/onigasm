@@ -2,10 +2,10 @@
     "extends": "tslint:recommended",
     "jsRules": { },
     "rules": {
-        "semicolon": false,
+        "semicolon": [true, "never"],
         "max-line-length": false,
         "arrow-parens": false,
-        "quotemark": false,
+        "quotemark": [true, "single"],
         "variable-name": false,
         "no-require-imports": false,
         "no-bitwise": false,
