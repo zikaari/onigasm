@@ -5,8 +5,6 @@ then
 else
     echo "libonig.so not found. Running oniguruma build"
     cd oniguruma
-    # for the time being
-    git checkout develop
     if [ ! -f configure ]
     then
         echo "Running autoreconf -vfi"
@@ -33,7 +31,7 @@ emcc -O2 \
     oniguruma/src/.libs/libonig.so \
     src/onigasm.cc\
     -Isrc -Ioniguruma/src \
-    -s WASM=1 \
+    -s ENVIRONMENT=shell \
     -s NO_EXIT_RUNTIME=1 \
     -s NO_FILESYSTEM=1 \
     -s TOTAL_MEMORY=157286400 \
@@ -43,6 +41,3 @@ emcc -O2 \
     -s MODULARIZE=1 \
     -s EXPORT_NAME="'Onigasm'" \
     -o lib/onigasm.js
-
-# 'require("fs")' in onigasm.js makes webpack go haywire, so remove it. It's OK as we don't need it anyway
-sed -i -r 's/require\("\w+"\)/{}/g' lib/onigasm.js
