@@ -33,18 +33,36 @@ export interface IOnigMatch {
     scanner: OnigScanner
 }
 
+/**
+ * Allocates space on the heap and copies the string bytes on to it
+ * @param str 
+ * @returns pointer to the first byte's address on heap
+ */
+function mallocAndWriteString(str: OnigString): number {
+    const ptr = onigasmH._malloc(str.utf8Bytes.length)
+    onigasmH.HEAPU8.set(str.utf8Bytes, ptr)
+    return ptr
+}
+
+function convertUTF8BytesFromPtrToString(ptr: number): string {
+    const chars = []
+    let i = 0
+    while (onigasmH.HEAPU8[ptr] !== 0x00) {
+        chars[i++] = onigasmH.HEAPU8[ptr++]
+    }
+    return chars.join()
+}
+
 const cache: Cache<OnigScanner, INativeOnigHInfo> = new LRUCache({
     dispose: (scanner: OnigScanner, info: INativeOnigHInfo) => {
-        const status = onigasmH.ccall(
-            'disposeCompiledPatterns',
-            'number',
-            ['array', 'number'],
-            [info.regexTPtrs, scanner.patterns.length],
-        )
+        const regexTPtrsPtr = onigasmH._malloc(info.regexTPtrs.length)
+        onigasmH.HEAPU8.set(info.regexTPtrs, regexTPtrsPtr)
+        const status = onigasmH._disposeCompiledPatterns(regexTPtrsPtr, scanner.patterns.length)
         if (status !== 0) {
-            const errString = onigasmH.ccall('getLastError', 'string')
-            throw new Error(errString)
+            const errMessage = convertUTF8BytesFromPtrToString(onigasmH._getLastError())
+            throw new Error(errMessage)
         }
+        onigasmH._free(regexTPtrsPtr)
     },
     max: 1000,
 })
@@ -109,13 +127,15 @@ export class OnigScanner {
             const regexTPtrs = []
             for (let i = 0; i < this.sources.length; i++) {
                 const pattern = this.sources[i];
-                status = onigasmH.ccall('compilePattern', 'number', ['string', 'number'], [pattern, regexTAddrRecieverPtr])
+                const patternStrPtr = mallocAndWriteString(new OnigString(pattern))
+                status = onigasmH._compilePattern(patternStrPtr, regexTAddrRecieverPtr)
                 if (status !== 0) {
-                    const errString = onigasmH.ccall('getLastError', 'string')
-                    throw new Error(errString)
+                    const errMessage = convertUTF8BytesFromPtrToString(onigasmH._getLastError())
+                    throw new Error(errMessage)
                 }
-                const regexTAddress = new Uint32Array(onigasmH.buffer, regexTAddrRecieverPtr, 1)[0]
+                const regexTAddress = onigasmH.HEAP32[regexTAddrRecieverPtr / 4]
                 regexTPtrs.push(regexTAddress)
+                onigasmH._free(patternStrPtr)
             }
             onigNativeInfo = {
                 regexTPtrs: new Uint8Array(Uint32Array.from(regexTPtrs).buffer),
@@ -124,32 +144,30 @@ export class OnigScanner {
             cache.set(this, onigNativeInfo)
         }
 
-        const resultInfoReceiverPtr = onigasmH._malloc(8)
         const onigString = string instanceof OnigString ? string : new OnigString(this.convertToString(string))
-        const strPtr = onigasmH._malloc(onigString.utf8Bytes.length)
-        onigasmH.HEAPU8.set(onigString.utf8Bytes, strPtr)
-        status = onigasmH.ccall(
-            'findBestMatch',
-            'number',
-            ['array', 'number', 'number', 'number', 'number', 'number'],
-            [
-                // regex_t **patterns
-                onigNativeInfo.regexTPtrs,
-                // int patternCount
-                this.sources.length,
-                // UChar *utf8String
-                strPtr,
-                // int strLen
-                onigString.utf8Bytes.length - 1,
-                // int startOffset
-                onigString.convertUtf16OffsetToUtf8(startPosition),
-                // int *resultInfo
-                resultInfoReceiverPtr,
-            ],
+        const strPtr = mallocAndWriteString(onigString)
+        const resultInfoReceiverPtr = onigasmH._malloc(8)
+        const regexTPtrsPtr = onigasmH._malloc(onigNativeInfo.regexTPtrs.length)
+        onigasmH.HEAPU8.set(onigNativeInfo.regexTPtrs, regexTPtrsPtr)
+
+        status = onigasmH._findBestMatch(
+            // regex_t **patterns
+            regexTPtrsPtr,
+            // int patternCount
+            this.sources.length,
+            // UChar *utf8String
+            strPtr,
+            // int strLen
+            onigString.utf8Bytes.length - 1,
+            // int startOffset
+            onigString.convertUtf16OffsetToUtf8(startPosition),
+            // int *resultInfo
+            resultInfoReceiverPtr,
         )
+
         if (status !== 0) {
-            const errString = onigasmH.ccall('getLastError', 'string')
-            throw new Error(errString)
+            const errMessage = convertUTF8BytesFromPtrToString(onigasmH._getLastError())
+            throw new Error(errMessage)
         }
         const [
             // The index of pattern which matched the string at least offset from 0 (start)
@@ -163,12 +181,14 @@ export class OnigScanner {
 
             // Length of the [start, end, ...] sequence so we know how much memory to read (will always be 0 or multiple of 2)
             encodedResultLength,
-        ] = new Uint32Array(onigasmH.buffer, resultInfoReceiverPtr, 3)
+        ] = new Uint32Array(onigasmH.HEAPU32.buffer, resultInfoReceiverPtr, 3)
 
         onigasmH._free(strPtr)
         onigasmH._free(resultInfoReceiverPtr)
+        onigasmH._free(regexTPtrsPtr)
+
         if (encodedResultLength > 0) {
-            const encodedResult = new Uint32Array(onigasmH.buffer, encodedResultBeginAddress, encodedResultLength)
+            const encodedResult = new Uint32Array(onigasmH.HEAPU32.buffer, encodedResultBeginAddress, encodedResultLength)
             const captureIndices = []
             let i = 0
             let captureIdx = 0
