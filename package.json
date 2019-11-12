@@ -11,8 +11,10 @@
     "watch::tsc": "tsc -w",
     "build": "concurrently \"npm run build::tsc\" \"npm run build::onig\"",
     "watch": "concurrently \"npm run watch::tsc\" \"npm run watch::onig\"",
+    "clean": "git submodule foreach --recursive git clean -xfd && rimraf lib",
     "test": "node test/index.js",
-    "benchmark": "node benchmark.js"
+    "benchmark": "node benchmark.js",
+    "prepublishOnly": "npm run clean && npm run build && npm run test"
   },
   "repository": {
     "type": "git",
@@ -39,6 +41,7 @@
     "durations": "^3.4.1",
     "jasmine-focused": "^1.0.7",
     "onchange": "^3.3.0",
+    "rimraf": "^3.0.0",
     "typescript": "^2.7.1"
   },
   "dependencies": {
