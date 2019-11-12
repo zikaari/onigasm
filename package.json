@@ -14,7 +14,8 @@
     "clean": "git submodule foreach --recursive git clean -xfd && rimraf lib",
     "test": "node test/index.js",
     "benchmark": "node benchmark.js",
-    "prepublishOnly": "npm run clean && npm run build && npm run test"
+    "prepublishOnly": "npm run setup-emsdk && npm run clean && npm run build && npm run test",
+    "setup-emsdk": "/bin/bash -c 'source ./scripts/setup-emsdk.sh 1.39.1'"
   },
   "repository": {
     "type": "git",
