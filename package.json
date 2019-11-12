@@ -1,6 +1,6 @@
 {
   "name": "onigasm",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "WebAssembly port of Oniguruma regex library",
   "main": "lib/index.js",
   "typings": "lib/typings/index.d.ts",
