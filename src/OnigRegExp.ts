@@ -1,5 +1,5 @@
 import OnigScanner, { IOnigCaptureIndex } from './OnigScanner'
-import OnigString from './OnigString';
+import OnigString from './OnigString'
 
 export interface IOnigSearchResult extends IOnigCaptureIndex {
     match: string

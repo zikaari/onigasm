@@ -1,9 +1,4 @@
-// ugly code begin
-declare const require
-import { Cache } from 'lru-cache'
-const LRUCache = require('lru-cache')
-// ugly code end
-
+import * as LRUCache from 'lru-cache'
 import { onigasmH } from './onigasmH'
 import OnigString from './OnigString'
 
@@ -35,7 +30,7 @@ export interface IOnigMatch {
 
 /**
  * Allocates space on the heap and copies the string bytes on to it
- * @param str 
+ * @param str
  * @returns pointer to the first byte's address on heap
  */
 function mallocAndWriteString(str: OnigString): number {
@@ -53,7 +48,7 @@ function convertUTF8BytesFromPtrToString(ptr: number): string {
     return chars.join()
 }
 
-const cache: Cache<OnigScanner, INativeOnigHInfo> = new LRUCache({
+const cache = new LRUCache<OnigScanner, INativeOnigHInfo>({
     dispose: (scanner: OnigScanner, info: INativeOnigHInfo) => {
         const regexTPtrsPtr = onigasmH._malloc(info.regexTPtrs.length)
         onigasmH.HEAPU8.set(info.regexTPtrs, regexTPtrsPtr)
@@ -126,7 +121,7 @@ export class OnigScanner {
             const regexTAddrRecieverPtr = onigasmH._malloc(4)
             const regexTPtrs = []
             for (let i = 0; i < this.sources.length; i++) {
-                const pattern = this.sources[i];
+                const pattern = this.sources[i]
                 const patternStrPtr = mallocAndWriteString(new OnigString(pattern))
                 status = onigasmH._compilePattern(patternStrPtr, regexTAddrRecieverPtr)
                 if (status !== 0) {

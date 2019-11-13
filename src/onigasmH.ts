@@ -9,16 +9,16 @@ const OnigasmModuleFactory = require('./onigasm.js' /** when TS is compiled to J
  *
  * Single handle shared among modules that decorate the C runtime to deliver `atom/node-oniguruma` API
  */
-export let onigasmH;
+export let onigasmH
 
 async function initModule(bytes: ArrayBuffer) {
     return new Promise((resolve, reject) => {
-        const { log, warn, error } = console;
+        const { log, warn, error } = console
         OnigasmModuleFactory({
             instantiateWasm(imports, successCallback) {
                 WebAssembly.instantiate(bytes, imports)
                     .then((output) => {
-                        successCallback(output.instance);
+                        successCallback(output.instance)
                     })
                     .catch((e) => {
                         throw e
@@ -30,11 +30,14 @@ async function initModule(bytes: ArrayBuffer) {
                 onigasmH = moduleH
                 resolve()
             })
-        if (typeof print !== "undefined") {
+        if (typeof print !== 'undefined') {
             // can be removed when https://github.com/emscripten-core/emscripten/issues/9829 is fixed.
-            console.log = log;
-            console.error = error;
-            console.warn = warn;
+            // tslint:disable-next-line:no-console
+            console.log = log
+            // tslint:disable-next-line:no-console
+            console.error = error
+            // tslint:disable-next-line:no-console
+            console.warn = warn
         }
     })
 }

@@ -37,15 +37,16 @@
   },
   "homepage": "https://github.com/NeekSandhu/onigasm#readme",
   "devDependencies": {
-    "@types/lru-cache": "^4.1.0",
-    "concurrently": "^3.5.1",
+    "@types/lru-cache": "^5.1.0",
+    "concurrently": "^5.0.0",
     "durations": "^3.4.1",
     "jasmine-focused": "^1.0.7",
-    "onchange": "^3.3.0",
+    "onchange": "^6.1.0",
     "rimraf": "^3.0.0",
-    "typescript": "^2.7.1"
+    "typescript": "^3.7.2"
   },
   "dependencies": {
-    "lru-cache": "^4.1.1"
+    "lru-cache": "^5.1.1",
+    "tslint": "^5.20.1"
   }
 }
