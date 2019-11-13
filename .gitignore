@@ -57,3 +57,6 @@ jspm_packages/
 
 # next.js build output
 .next
+
+# cloned emsdk
+emsdk/

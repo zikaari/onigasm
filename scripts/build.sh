@@ -1,4 +1,8 @@
 #!/bin/bash
+ROOT_DIR=$(dirname "$(dirname "$(readlink -f "$0")")")
+
+source "$ROOT_DIR/emsdk/emsdk_env.sh"
+
 if [ -f oniguruma/src/.libs/libonig.so ]
 then
     echo "libonig.so exists, skipping oniguruma build"
