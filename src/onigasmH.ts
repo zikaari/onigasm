@@ -13,6 +13,7 @@ export let onigasmH;
 
 async function initModule(bytes: ArrayBuffer) {
     return new Promise((resolve, reject) => {
+        const { log, warn, error } = console;
         OnigasmModuleFactory({
             instantiateWasm(imports, successCallback) {
                 WebAssembly.instantiate(bytes, imports)
@@ -29,6 +30,12 @@ async function initModule(bytes: ArrayBuffer) {
                 onigasmH = moduleH
                 resolve()
             })
+        if (typeof print !== "undefined") {
+            // can be removed when https://github.com/emscripten-core/emscripten/issues/9829 is fixed.
+            console.log = log;
+            console.error = error;
+            console.warn = warn;
+        }
     })
 }
 
