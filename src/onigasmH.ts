@@ -42,7 +42,7 @@ async function initModule(bytes: ArrayBuffer) {
     })
 }
 
-let isInitialized = false
+export let isInitialized = false
 
 /**
  * Mount the .wasm file that will act as library's "backend"
